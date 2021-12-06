@@ -97,3 +97,30 @@ class CatSwarmOptmization:
 
     def getFitness(self, position: list(int)) -> float:
         pass
+class Operation:
+    def __init__(self, job, machine, time):
+        self.job = job
+        self.machine = machine
+        self.time = time
+
+    def __repr__(self):
+        return "<Operation job:%s, machine:%s, time:%s>" % (self.job, self.machine, self.time)
+        
+def read_input():
+    times = np.genfromtxt("./times.csv", dtype=int, delimiter=",")
+    machines = np.genfromtxt("./machines.csv", dtype=int, delimiter=",")
+    return times, machines
+
+def parse_input(times, machines):
+    jobs = times.shape[0] 
+    operations = []
+    for x, y in np.ndindex(times.shape):
+        operation = Operation(x % jobs + 1, machines[x, y], times[x, y])
+        operations.append(operation)
+    return operations
+
+def main():
+    times,machines = read_input()
+    operations = parse_input(times, machines)
+
+main()
