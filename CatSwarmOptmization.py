@@ -1,5 +1,6 @@
 import math
 import random
+import numpy as np
 
 class CatSwarmOptmization:
     n = 0
@@ -81,6 +82,18 @@ class CatSwarmOptmization:
             position[borders[0]+i] -= position[borders[1]-i]
 
         return position
+    
+    def tracingMode(self, cat, best_cat, vel_range):
+        w = 0.7
+        r = random.random(0,1)
+        c = 2.05
+        velocity = w * cat[vel] + r * c * (best_cat[pos] - cat[pos])
+        velocity = np.where(velocity > vel_range, vel_range, velocity)
+        cat[pos] += velocity
+        
+        return cat
+
+
 
     def getFitness(self, position: list(int)) -> float:
         pass
