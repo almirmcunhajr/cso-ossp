@@ -1,6 +1,17 @@
 import math
 import random
 import numpy as np
+import copy
+
+smp = 5    # seeking memory pool
+srd = 2     # seeking range of the selected dimension
+cdc = 10    # counts of dimension to change
+spc = True  # self-position considering
+mr = 0.30   # mixture ratio
+cats_num = 50 # number of cats
+operations_num = 100
+machines_num = 10
+iterations = 1000
 
 class CatSwarmOptmization:
     n = 0
@@ -97,6 +108,64 @@ class CatSwarmOptmization:
 
     def getFitness(self, position: list(int)) -> float:
         pass
+
+
+class Cat:
+
+    def __init__(self, operations):
+        self.position = operations
+
+    def fitness(self):
+        pass
+
+    def apply_mode(self):
+        if self.sm:
+            self.__apply_sm()
+        else:
+            self.__apply_tm()
+
+    def __apply_sm(self):
+        cat_copies = []
+        j = smp
+        if spc:
+            j = smp - 1
+            cat_copies.append(self)
+
+        for i in range(0, j):
+            cat_copies.append(copy.deepcopy(self))
+
+        for cat in cat_copies:
+            srd = random.randrange(0, operations_num)
+
+            if (srd+cdc > operations_num):
+                mutation = cat.position[srd - (len(cat.position) - cdc):srd+1]
+                mutation = mutation[::-1]
+                new_position = cat.position[0:srd - (len(cat.position) - cdc)] + mutation + cat.position[srd+1:]
+                assert len(new_position) == operations_num
+                cat.position = new_position
+            else:
+                mutation = cat.position[srd+1:srd+cdc]
+                mutation = mutation[::-1]
+                new_position = cat.position[0:srd+1] + mutation + cat.position[srd+cdc:]
+                assert len(new_position) == operations_num
+                cat.position = new_position
+
+        self_fitness = self.fitness()
+        for cat in cat_copies:
+            new_fitness = cat.fitness()
+            if new_fitness < self_fitness:
+                self.position = cat.position
+                break
+
+
+    def __apply_tm(self):        
+        pass
+
+class Machine:
+    def __init__(self):
+        self.time = 0
+        self.current_operation = None
+
 class Operation:
     def __init__(self, job, machine, time):
         self.job = job
@@ -122,5 +191,9 @@ def parse_input(times, machines):
 def main():
     times,machines = read_input()
     operations = parse_input(times, machines)
-
+    cats = []
+    for i in range(0, cats_num):
+        operations = copy.deepcopy(operations)
+        random.shuffle(operations)
+        cats.append(Cat(operations))
 main()
