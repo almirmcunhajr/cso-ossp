@@ -20,12 +20,13 @@ class CatSwarmOptmization:
     srd = 0
     cdc = 0
 
-    def __init__(self,
+    def __init__(self, operations,
         n: int, 
         smp: int,
         spc: bool,
         cdc: int
     ) -> None:
+        self.position = operations
         self.n = n
         self.smp = smp
         self.spc = spc
@@ -103,64 +104,16 @@ class CatSwarmOptmization:
         cat[pos] += velocity
         
         return cat
-
+        
+    def apply_mode(self):
+        if self.sm:
+            self.seekingMode()
+        else:
+            self.tracingMode
 
 
     def getFitness(self, position: list(int)) -> float:
         pass
-
-
-class Cat:
-
-    def __init__(self, operations):
-        self.position = operations
-
-    def fitness(self):
-        pass
-
-    def apply_mode(self):
-        if self.sm:
-            self.__apply_sm()
-        else:
-            self.__apply_tm()
-
-    def __apply_sm(self):
-        cat_copies = []
-        j = smp
-        if spc:
-            j = smp - 1
-            cat_copies.append(self)
-
-        for i in range(0, j):
-            cat_copies.append(copy.deepcopy(self))
-
-        for cat in cat_copies:
-            srd = random.randrange(0, operations_num)
-
-            if (srd+cdc > operations_num):
-                mutation = cat.position[srd - (len(cat.position) - cdc):srd+1]
-                mutation = mutation[::-1]
-                new_position = cat.position[0:srd - (len(cat.position) - cdc)] + mutation + cat.position[srd+1:]
-                assert len(new_position) == operations_num
-                cat.position = new_position
-            else:
-                mutation = cat.position[srd+1:srd+cdc]
-                mutation = mutation[::-1]
-                new_position = cat.position[0:srd+1] + mutation + cat.position[srd+cdc:]
-                assert len(new_position) == operations_num
-                cat.position = new_position
-
-        self_fitness = self.fitness()
-        for cat in cat_copies:
-            new_fitness = cat.fitness()
-            if new_fitness < self_fitness:
-                self.position = cat.position
-                break
-
-
-    def __apply_tm(self):        
-        pass
-
 class Machine:
     def __init__(self):
         self.time = 0
@@ -191,9 +144,22 @@ def parse_input(times, machines):
 def main():
     times,machines = read_input()
     operations = parse_input(times, machines)
+    best_fitness = None
     cats = []
     for i in range(0, cats_num):
         operations = copy.deepcopy(operations)
         random.shuffle(operations)
-        cats.append(Cat(operations))
+        cats.append(CatSwarmOptmization(operations))
+    #iterações
+    for i in range(0,1000):
+        for cat in cats:
+            sm = random.random() > mr
+            cat.sm = sm
+            new_fitness = cat.getFitness()
+            if best_fitness == None or new_fitness < best_fitness:
+                best_fitness = new_fitness
+            
+        for cat in cats:
+            cat.apply_mode()
+
 main()
