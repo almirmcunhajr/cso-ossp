@@ -7,9 +7,8 @@ class Cat:
     fitness = 0
     velocity = 1
 
-    def __init__(self, position: list(int), sm: bool, fitness: float):
+    def __init__(self, position: 'list(int)', fitness: float):
         self.position = position
-        self.sm = sm
         self.fitness = fitness
 
 class CatSwarmOptmization:
@@ -20,7 +19,7 @@ class CatSwarmOptmization:
     cdc = 0
     mr = 0
     swarm = []
-    max_velocity = 0
+    max_velocity = 1
 
     def __init__(
         self, 
@@ -32,10 +31,11 @@ class CatSwarmOptmization:
         mr: float
     ) -> None:
         self.operations = operations
+        self.solution_size = len(operations)
         self.n = n
         self.smp = smp
         self.spc = spc
-        self.srd = random.randint(0, n-1)
+        self.srd = random.randint(0, self.solution_size-1)
         self.cdc = cdc
         self.mr = mr
 
@@ -47,16 +47,19 @@ class CatSwarmOptmization:
 
     def initializePopulation(self):
         for i in range(self.n):
-            position = [x for x in range(1, len(self.operations))]
+            position = [x for x in range(1, self.solution_size+1)]
             random.shuffle(position)
             fitness = self.getFitness(position)
         
             cat = Cat(position=position, fitness=fitness)
             self.swarm.append(cat)
 
-    def seekingMode(self, position: list(int)) -> list(int):
+    def seekingMode(self, position: 'list(int)') -> 'list(int)':
         candidates = []
         look_around = 0
+
+        max_fitness = 0
+        min_fitness = math.inf
 
         # If SPC is True, consider the current position as a candidate
         # Then look around for at last SMP positions
@@ -64,17 +67,16 @@ class CatSwarmOptmization:
             fitness = self.getFitness(position)
             candidates = [(position, fitness)]
             look_around = self.smp-1
+            max_fitness = min_fitness = fitness            
         else:
             look_around = self.smp
 
         # Look around, keeping the max and min fitness found
-        max_fitness = 0
-        min_fitness = math.inf
         for i in range(look_around):
             mutation = self.mutate(position)
 
             # Generate random SRD
-            self.srd = random.randint(0, self.n-1)
+            self.srd = random.randint(0, self.solution_size-1)
 
             fitness = self.getFitness(mutation)
 
@@ -94,42 +96,42 @@ class CatSwarmOptmization:
         # If the max and min fitness found are equal, select the current position
         return position
 
-    def getCandidateProbabilityFunction(self, max_fitness: float, min_fitness) -> function:
-        def probabilityFunction(candidate: tuple(list(int), float)) -> float:
+    def getCandidateProbabilityFunction(self, max_fitness: float, min_fitness):
+        def probabilityFunction(candidate: 'tuple(list(int), float)') -> float:
             return abs(candidate[1]-min_fitness)/(max_fitness-min_fitness)
         
         return probabilityFunction       
     
-    def mutate(self, position: list(int)) -> list(int):
+    def mutate(self, position: 'list(int)') -> 'list(int)':
         borders = []
         borders.append(self.srd)
-        borders.append((self.cdc + self.srd) % self.n)
+        borders.append((self.cdc + self.srd) % self.solution_size)
         borders.sort()
 
-        mid = (borders[0]+borders[1])/2
+        mid = int((borders[1]-borders[0])/2)
 
         # Switch values between borders
-        for i in range(mid):
-            position[borders[0]+i] += position[borders[1]-i]
-            position[borders[1]-i] = position[borders[0]+i]
-            position[borders[0]+i] -= position[borders[1]-i]
+        for i in range(mid+1):
+            tmp = position[borders[0]+i]
+            position[borders[0]+i] = position[borders[1]-i]
+            position[borders[1]-i] = tmp
 
         return position
     
     def tracingMode(self, cat, best_cat):
-        '''w = 0.7
-        r = random.random(0,1)
-        c = 2.05
-        velocity = w * cat.velocity + r * c * (best_cat[pos] - cat[pos])
-        velocity = np.where(velocity > self.max_velocity, self.max_velocity, velocity)
-        cat[pos] += velocity
-        
-        return cat'''
+        # w = 0.7
+        # r = random.random()
+        # c = 2.05
+
+        # for pos in range(self.solution_size):
+        #     velocity = w * cat.velocity + r * c * (best_cat.position[pos] - cat.position[pos])
+        #     velocity = np.where(velocity > self.max_velocity, velocity, self.max_velocity)
+        #     cat.position[pos] += int(velocity)
         return cat.position
 
     def rank(self):
         rank = [cat for cat in self.swarm]
-        rank.sort(key=lambda cat: cat.fitness)
+        rank.sort(key=lambda cat: cat.fitness, reverse=True)
         
         return rank
         
@@ -144,7 +146,7 @@ class CatSwarmOptmization:
         cat.position = new_position
         cat.fitness = self.getFitness(new_position)
    
-    def getFitness(self, position: list(int)) -> float:
+    def getFitness(self, position: 'list(int)') -> float:
         schedule = Schedule(position, self.operations)
         end_time = schedule.getEndTime()
 
@@ -172,16 +174,23 @@ class Schedule:
     jobs_next_free_time = {}
     machines_schedule = {}
 
-    def __init__(self, sequence: list(int), operations: list(Operation)):
+    def __init__(self, sequence: 'list(int)', operations: 'list(Operation)'):
         self.sequence = sequence
         self.operations = operations
+
+        self.buildMachinesSchedule()
 
     def buildMachinesSchedule(self):
         for op_index in self.sequence:
             # Find job and machine free times
+
             op = [op for op in self.operations if op.number == op_index][0]
-            job_next_free_time = self.jobs_next_free_time[op.job]
-            machine_next_free_time = self.findMachineAvailableTime(op.machine, job_next_free_time, op.duration)
+            
+            job_next_free_time = 0
+            if op.job in self.jobs_next_free_time:
+                job_next_free_time = self.jobs_next_free_time[op.job]
+                
+            machine_next_free_time = self.findMachineAvailableTime(op.machine, job_next_free_time, op.time)
 
             # Reconcile op start time 
             op_start_time = max(job_next_free_time, machine_next_free_time)
@@ -189,22 +198,25 @@ class Schedule:
             self.jobs_next_free_time[op.job] = op_start_time
 
             # Add op event to machine schedule
-            self.machines_schedule[op.machine].append((op_start_time, op_start_time+op.duration))
+            if op.machine not in self.machines_schedule:
+                self.machines_schedule[op.machine] = []
+
+            self.machines_schedule[op.machine].append((op_start_time, op_start_time+op.time))
             self.machines_schedule[op.machine].sort(key=lambda event: event[0])
 
     def findMachineAvailableTime(self, machine:int, min_start: int, duration: int) -> int:
-        schedule = self.machines_schedule[machine]
-
         # If nothing scheduled, return 0
-        if len(schedule) == 0:
+        if machine not in self.machines_schedule:
             return 0
 
-        for i, event in enumerate(schedule):
-            next_event = schedule[i+1]
+        schedule = self.machines_schedule[machine]
 
+        for i, event in enumerate(schedule):
             # If it's the last event, return the event end time
-            if next_event == None:
+            if i+1 == len(schedule):
                 return event[1]
+
+            next_event = schedule[i+1]
 
             # If the incoming event fits, return the machine event end time
             if event[1] >= min_start and next_event[0] <= min_start+duration:
@@ -259,10 +271,10 @@ def main():
         for cat in cat_swarm_optmization.swarm:
             cat_swarm_optmization.applyMode(cat)
     
-    rank = cat_swarm_optmization.rank()
-    best_cat = rank[0]
+        rank = cat_swarm_optmization.rank()
+        best_cat = rank[0]
 
-    print(f"Best cat fitness: {best_cat.fitness}")
+        print(f"Best cat fitness of iteration {i}: {best_cat.fitness}")
 
 if __name__ == '__main__':
     main()
