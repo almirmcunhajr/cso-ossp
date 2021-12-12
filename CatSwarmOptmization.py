@@ -131,7 +131,7 @@ class CatSwarmOptmization:
 
     def rank(self):
         rank = [cat for cat in self.swarm]
-        rank.sort(key=lambda cat: cat.fitness, reverse=True)
+        rank.sort(key=lambda cat: cat.fitness)
         
         return rank
         
