@@ -110,10 +110,13 @@ class CatSwarmOptmization:
             self.seekingMode()
         else:
             self.tracingMode
-
-
+   
     def getFitness(self, position: list(int)) -> float:
-        pass
+        schedule = Schedule(position, self.operations)
+        end_time = schedule.getEndTime()
+
+        return math.exp(-end_time)
+
 class Machine:
     def __init__(self):
         self.time = 0
@@ -127,7 +130,66 @@ class Operation:
 
     def __repr__(self):
         return "<Operation job:%s, machine:%s, time:%s>" % (self.job, self.machine, self.time)
-        
+
+class Schedule:
+    sequence = []
+    operations = []
+
+    jobs_next_free_time = {}
+    machines_schedule = {}
+
+    def __init__(self, sequence: list(int), operations: list(Operation)):
+        self.sequence = sequence
+        self.operations = operations
+
+    def buildMachinesSchedule(self):
+        for op_index in self.sequence:
+            # Find job and machine free times
+            op = self.operations[op_index]
+            job_next_free_time = self.jobs_next_free_time[op.job]
+            machine_next_free_time = self.findMachineAvailableTime(op.machine, job_next_free_time, op.duration)
+
+            # Reconcile op start time 
+            op_start_time = max(job_next_free_time, machine_next_free_time)
+
+            self.jobs_next_free_time[op.job] = op_start_time
+
+            # Add op event to machine schedule
+            self.machines_schedule[op.machine].append((op_start_time, op_start_time+op.duration))
+            self.machines_schedule[op.machine].sort(key=lambda event: event[0])
+
+    def findMachineAvailableTime(self, machine:int, min_start: int, duration: int) -> int:
+        schedule = self.machines_schedule[machine]
+
+        # If nothing scheduled, return 0
+        if len(schedule) == 0:
+            return 0
+
+        for i, event in enumerate(schedule):
+            next_event = schedule[i+1]
+
+            # If it's the last event, return the event end time
+            if next_event == None:
+                return event[1]
+
+            # If the incoming event fits, return the machine event end time
+            if event[1] >= min_start and next_event[0] <= min_start+duration:
+                return event[1]
+    
+    def getEndTime(self):
+        max_end_time = 0
+        for machine in self.machines_schedule:
+            schedule = self.machines_schedule[machine]
+
+            if len(schedule) == 0:
+                continue
+
+            last_event = schedule[-1]
+            if last_event[1] > max_end_time:
+                max_end_time = last_event[1]
+
+        return max_end_time
+
 def read_input():
     times = np.genfromtxt("./times.csv", dtype=int, delimiter=",")
     machines = np.genfromtxt("./machines.csv", dtype=int, delimiter=",")
