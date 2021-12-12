@@ -98,7 +98,7 @@ class CatSwarmOptmization:
 
     def getCandidateProbabilityFunction(self, max_fitness: float, min_fitness):
         def probabilityFunction(candidate: 'tuple(list(int), float)') -> float:
-            return abs(candidate[1]-min_fitness)/(max_fitness-min_fitness)
+            return abs(candidate[1]-max_fitness)/(max_fitness-min_fitness)
         
         return probabilityFunction       
     
@@ -150,7 +150,7 @@ class CatSwarmOptmization:
         schedule = Schedule(position, self.operations)
         end_time = schedule.getEndTime()
 
-        return math.exp(-end_time)
+        return end_time
 
 class Machine:
     def __init__(self):
