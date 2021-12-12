@@ -20,12 +20,13 @@ class CatSwarmOptmization:
     srd = 0
     cdc = 0
 
-    def __init__(self,
+    def __init__(self, operations,
         n: int, 
         smp: int,
         spc: bool,
         cdc: int
     ) -> None:
+        self.position = operations
         self.n = n
         self.smp = smp
         self.spc = spc
@@ -103,63 +104,18 @@ class CatSwarmOptmization:
         cat[pos] += velocity
         
         return cat
-
-
-
-    def getFitness(self, position: list(int)) -> float:
-        pass
-
-
-class Cat:
-
-    def __init__(self, operations):
-        self.position = operations
-
-    def fitness(self):
-        pass
-
+        
     def apply_mode(self):
         if self.sm:
-            self.__apply_sm()
+            self.seekingMode()
         else:
-            self.__apply_tm()
+            self.tracingMode
+   
+    def getFitness(self, position: list(int)) -> float:
+        schedule = Schedule(position, self.operations)
+        end_time = schedule.getEndTime()
 
-    def __apply_sm(self):
-        cat_copies = []
-        j = smp
-        if spc:
-            j = smp - 1
-            cat_copies.append(self)
-
-        for i in range(0, j):
-            cat_copies.append(copy.deepcopy(self))
-
-        for cat in cat_copies:
-            srd = random.randrange(0, operations_num)
-
-            if (srd+cdc > operations_num):
-                mutation = cat.position[srd - (len(cat.position) - cdc):srd+1]
-                mutation = mutation[::-1]
-                new_position = cat.position[0:srd - (len(cat.position) - cdc)] + mutation + cat.position[srd+1:]
-                assert len(new_position) == operations_num
-                cat.position = new_position
-            else:
-                mutation = cat.position[srd+1:srd+cdc]
-                mutation = mutation[::-1]
-                new_position = cat.position[0:srd+1] + mutation + cat.position[srd+cdc:]
-                assert len(new_position) == operations_num
-                cat.position = new_position
-
-        self_fitness = self.fitness()
-        for cat in cat_copies:
-            new_fitness = cat.fitness()
-            if new_fitness < self_fitness:
-                self.position = cat.position
-                break
-
-
-    def __apply_tm(self):        
-        pass
+        return math.exp(-end_time)
 
 class Machine:
     def __init__(self):
@@ -174,7 +130,66 @@ class Operation:
 
     def __repr__(self):
         return "<Operation job:%s, machine:%s, time:%s>" % (self.job, self.machine, self.time)
-        
+
+class Schedule:
+    sequence = []
+    operations = []
+
+    jobs_next_free_time = {}
+    machines_schedule = {}
+
+    def __init__(self, sequence: list(int), operations: list(Operation)):
+        self.sequence = sequence
+        self.operations = operations
+
+    def buildMachinesSchedule(self):
+        for op_index in self.sequence:
+            # Find job and machine free times
+            op = self.operations[op_index]
+            job_next_free_time = self.jobs_next_free_time[op.job]
+            machine_next_free_time = self.findMachineAvailableTime(op.machine, job_next_free_time, op.duration)
+
+            # Reconcile op start time 
+            op_start_time = max(job_next_free_time, machine_next_free_time)
+
+            self.jobs_next_free_time[op.job] = op_start_time
+
+            # Add op event to machine schedule
+            self.machines_schedule[op.machine].append((op_start_time, op_start_time+op.duration))
+            self.machines_schedule[op.machine].sort(key=lambda event: event[0])
+
+    def findMachineAvailableTime(self, machine:int, min_start: int, duration: int) -> int:
+        schedule = self.machines_schedule[machine]
+
+        # If nothing scheduled, return 0
+        if len(schedule) == 0:
+            return 0
+
+        for i, event in enumerate(schedule):
+            next_event = schedule[i+1]
+
+            # If it's the last event, return the event end time
+            if next_event == None:
+                return event[1]
+
+            # If the incoming event fits, return the machine event end time
+            if event[1] >= min_start and next_event[0] <= min_start+duration:
+                return event[1]
+    
+    def getEndTime(self):
+        max_end_time = 0
+        for machine in self.machines_schedule:
+            schedule = self.machines_schedule[machine]
+
+            if len(schedule) == 0:
+                continue
+
+            last_event = schedule[-1]
+            if last_event[1] > max_end_time:
+                max_end_time = last_event[1]
+
+        return max_end_time
+
 def read_input():
     times = np.genfromtxt("./times.csv", dtype=int, delimiter=",")
     machines = np.genfromtxt("./machines.csv", dtype=int, delimiter=",")
@@ -191,9 +206,22 @@ def parse_input(times, machines):
 def main():
     times,machines = read_input()
     operations = parse_input(times, machines)
+    best_fitness = None
     cats = []
     for i in range(0, cats_num):
         operations = copy.deepcopy(operations)
         random.shuffle(operations)
-        cats.append(Cat(operations))
+        cats.append(CatSwarmOptmization(operations))
+    #iterações
+    for i in range(0,1000):
+        for cat in cats:
+            sm = random.random() > mr
+            cat.sm = sm
+            new_fitness = cat.getFitness()
+            if best_fitness == None or new_fitness < best_fitness:
+                best_fitness = new_fitness
+            
+        for cat in cats:
+            cat.apply_mode()
+
 main()
