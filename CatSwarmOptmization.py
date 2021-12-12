@@ -20,13 +20,13 @@ class CatSwarmOptmization:
     srd = 0
     cdc = 0
 
-    def __init__(self, operations,
+    def __init__(self, position,
         n: int, 
         smp: int,
         spc: bool,
         cdc: int
     ) -> None:
-        self.position = operations
+        self.position = position
         self.n = n
         self.smp = smp
         self.spc = spc
@@ -123,13 +123,14 @@ class Machine:
         self.current_operation = None
 
 class Operation:
-    def __init__(self, job, machine, time):
+    def __init__(self, number, job, machine, time):
+        self.number = number 
         self.job = job
         self.machine = machine
         self.time = time
 
     def __repr__(self):
-        return "<Operation job:%s, machine:%s, time:%s>" % (self.job, self.machine, self.time)
+        return "<Operation number %s: job:%s, machine:%s, time:%s>" % (self.number, self.job, self.machine, self.time)
 
 class Schedule:
     sequence = []
@@ -198,14 +199,18 @@ def read_input():
 def parse_input(times, machines):
     jobs = times.shape[0] 
     operations = []
+    op_number = 1
     for x, y in np.ndindex(times.shape):
-        operation = Operation(x % jobs + 1, machines[x, y], times[x, y])
+        operation = Operation(op_number, x % jobs + 1, machines[x, y], times[x, y])
         operations.append(operation)
+        op_number+=1
     return operations
 
 def main():
     times,machines = read_input()
     operations = parse_input(times, machines)
+    #numero de operações (matrix 5x5 = 25 operações)
+    positions = 25
     best_fitness = None
     cats = []
     for i in range(0, cats_num):
