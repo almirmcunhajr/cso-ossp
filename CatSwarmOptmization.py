@@ -1,17 +1,16 @@
 import math
 import random
 import numpy as np
-import copy
 
-smp = 5    # seeking memory pool
-srd = 2     # seeking range of the selected dimension
-cdc = 10    # counts of dimension to change
-spc = True  # self-position considering
-mr = 0.30   # mixture ratio
-cats_num = 50 # number of cats
-operations_num = 100
-machines_num = 10
-iterations = 1000
+class Cat:
+    sm = True
+    fitness = 0
+    velocity = 1
+
+    def __init__(self, position: list(int), sm: bool, fitness: float):
+        self.position = position
+        self.sm = sm
+        self.fitness = fitness
 
 class CatSwarmOptmization:
     n = 0
@@ -19,20 +18,42 @@ class CatSwarmOptmization:
     spc = False
     srd = 0
     cdc = 0
+    mr = 0
+    swarm = []
+    max_velocity = 0
 
-    def __init__(self, position,
+    def __init__(
+        self, 
+        operations,
         n: int, 
         smp: int,
         spc: bool,
-        cdc: int
+        cdc: int,
+        mr: float
     ) -> None:
-        self.position = position
+        self.operations = operations
         self.n = n
         self.smp = smp
         self.spc = spc
         self.srd = random.randint(0, n-1)
         self.cdc = cdc
-    
+        self.mr = mr
+
+    def mixtureStates(self):
+        for cat in self.swarm:
+            sm = random.random() > self.mr
+            cat.sm = sm
+            
+
+    def initializePopulation(self):
+        for i in range(self.n):
+            position = [x for x in range(1, len(self.operations))]
+            random.shuffle(position)
+            fitness = self.getFitness(position)
+        
+            cat = Cat(position=position, fitness=fitness)
+            self.swarm.append(cat)
+
     def seekingMode(self, position: list(int)) -> list(int):
         candidates = []
         look_around = 0
@@ -95,21 +116,33 @@ class CatSwarmOptmization:
 
         return position
     
-    def tracingMode(self, cat, best_cat, vel_range):
-        w = 0.7
+    def tracingMode(self, cat, best_cat):
+        '''w = 0.7
         r = random.random(0,1)
         c = 2.05
-        velocity = w * cat[vel] + r * c * (best_cat[pos] - cat[pos])
-        velocity = np.where(velocity > vel_range, vel_range, velocity)
+        velocity = w * cat.velocity + r * c * (best_cat[pos] - cat[pos])
+        velocity = np.where(velocity > self.max_velocity, self.max_velocity, velocity)
         cat[pos] += velocity
         
-        return cat
+        return cat'''
+        return cat.position
+
+    def rank(self):
+        rank = [cat for cat in self.swarm]
+        rank.sort(key=lambda cat: cat.fitness)
         
-    def apply_mode(self):
-        if self.sm:
-            self.seekingMode()
+        return rank
+        
+    def applyMode(self, cat: Cat):
+        new_position = []
+        if cat.sm:
+            new_position = self.seekingMode(cat.position)
         else:
-            self.tracingMode
+            rank = self.rank()
+            new_position= self.tracingMode(cat, rank[0])
+        
+        cat.position = new_position
+        cat.fitness = self.getFitness(new_position)
    
     def getFitness(self, position: list(int)) -> float:
         schedule = Schedule(position, self.operations)
@@ -146,7 +179,7 @@ class Schedule:
     def buildMachinesSchedule(self):
         for op_index in self.sequence:
             # Find job and machine free times
-            op = self.operations[op_index]
+            op = [op for op in self.operations if op.number == op_index][0]
             job_next_free_time = self.jobs_next_free_time[op.job]
             machine_next_free_time = self.findMachineAvailableTime(op.machine, job_next_free_time, op.duration)
 
@@ -207,26 +240,29 @@ def parse_input(times, machines):
     return operations
 
 def main():
+    smp = 5 # seeking memory pool
+    cdc = 10 # counts of dimension to change
+    spc = True # self-position considering
+    mr = 0.30 # mixture ratio
+    cats_num = 50 # number of cats
+    iterations = 1000
+
     times,machines = read_input()
     operations = parse_input(times, machines)
-    #numero de operações (matrix 5x5 = 25 operações)
-    positions = 25
-    best_fitness = None
-    cats = []
-    for i in range(0, cats_num):
-        operations = copy.deepcopy(operations)
-        random.shuffle(operations)
-        cats.append(CatSwarmOptmization(operations))
-    #iterações
-    for i in range(0,1000):
-        for cat in cats:
-            sm = random.random() > mr
-            cat.sm = sm
-            new_fitness = cat.getFitness()
-            if best_fitness == None or new_fitness < best_fitness:
-                best_fitness = new_fitness
-            
-        for cat in cats:
-            cat.apply_mode()
 
-main()
+    cat_swarm_optmization = CatSwarmOptmization(operations, cats_num, smp, spc, cdc, mr)
+
+    cat_swarm_optmization.initializePopulation()
+    
+    for i in range(0, iterations):
+        cat_swarm_optmization.mixtureStates()
+        for cat in cat_swarm_optmization.swarm:
+            cat_swarm_optmization.applyMode(cat)
+    
+    rank = cat_swarm_optmization.rank()
+    best_cat = rank[0]
+
+    print(f"Best cat fitness: {best_cat.fitness}")
+
+if __name__ == '__main__':
+    main()
