@@ -3,24 +3,13 @@ import random
 import numpy as np
 
 class Cat:
-    sm = True
-    fitness = 0
-    velocity = 1
-
     def __init__(self, position: 'list(int)', fitness: float):
         self.position = position
         self.fitness = fitness
+        self.velocity = 1
+        self.sm = True
 
 class CatSwarmOptmization:
-    n = 0
-    smp = 0
-    spc = False
-    srd = 0
-    cdc = 0
-    mr = 0
-    swarm = []
-    max_velocity = 1
-
     def __init__(
         self, 
         operations,
@@ -38,13 +27,14 @@ class CatSwarmOptmization:
         self.srd = random.randint(0, self.solution_size-1)
         self.cdc = cdc
         self.mr = mr
+        self.swarm = []
+        self.max_velocity = 1
 
     def mixtureStates(self):
         for cat in self.swarm:
             sm = random.random() > self.mr
             cat.sm = sm
             
-
     def initializePopulation(self):
         for i in range(self.n):
             position = [x for x in range(1, self.solution_size+1)]
@@ -168,15 +158,11 @@ class Operation:
         return "<Operation number %s: job:%s, machine:%s, time:%s>" % (self.number, self.job, self.machine, self.time)
 
 class Schedule:
-    sequence = []
-    operations = []
-
-    jobs_next_free_time = {}
-    machines_schedule = {}
-
     def __init__(self, sequence: 'list(int)', operations: 'list(Operation)'):
         self.sequence = sequence
         self.operations = operations
+        self.jobs_next_free_time = {}
+        self.machines_schedule = {}
 
         self.buildMachinesSchedule()
 
