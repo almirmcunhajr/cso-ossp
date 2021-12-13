@@ -109,14 +109,16 @@ class CatSwarmOptmization:
         return position
     
     def tracingMode(self, cat, best_cat):
-        # w = 0.7
-        # r = random.random()
-        # c = 2.05
+        w = 0.7
+        r = random.random()
+        c = 2.05
 
-        # for pos in range(self.solution_size):
-        #     velocity = w * cat.velocity + r * c * (best_cat.position[pos] - cat.position[pos])
-        #     velocity = np.where(velocity > self.max_velocity, velocity, self.max_velocity)
-        #     cat.position[pos] += int(velocity)
+        for pos in range(self.solution_size):
+            velocity = w * cat.velocity + r * c * (best_cat.position[pos] - cat.position[pos])
+            velocity = np.where(velocity > self.max_velocity, velocity, self.max_velocity)
+            cat.position[pos] = (cat.position[pos] + int(velocity)) % self.solution_size
+            if cat.position[pos] == 0:
+                cat.position[pos] = 1
         return cat.position
 
     def rank(self):
@@ -169,7 +171,6 @@ class Schedule:
     def buildMachinesSchedule(self):
         for op_index in self.sequence:
             # Find job and machine free times
-
             op = [op for op in self.operations if op.number == op_index][0]
             
             job_next_free_time = 0
@@ -252,15 +253,20 @@ def main():
 
     cat_swarm_optmization.initializePopulation()
     
+    best_cat_fitness = math.inf
+    best_cat_fitness_history = []
     for i in range(0, iterations):
         cat_swarm_optmization.mixtureStates()
         for cat in cat_swarm_optmization.swarm:
             cat_swarm_optmization.applyMode(cat)
     
         rank = cat_swarm_optmization.rank()
-        best_cat = rank[0]
 
-        print(f"Best cat fitness of iteration {i}: {best_cat.fitness}")
+        if rank[0].fitness < best_cat_fitness:
+            best_cat_fitness = rank[0].fitness
+            best_cat_fitness_history.append(best_cat_fitness)
+
+        print(f"Best cat fitness of iteration {i}: {best_cat_fitness}")
 
 if __name__ == '__main__':
     main()
