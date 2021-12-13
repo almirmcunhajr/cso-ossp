@@ -1,6 +1,8 @@
 import math
 import random
 import numpy as np
+import statistics
+from report import plot_graphs
 
 class Cat:
     def __init__(self, position: 'list(int)', fitness: float):
@@ -126,7 +128,13 @@ class CatSwarmOptmization:
         rank.sort(key=lambda cat: cat.fitness)
         
         return rank
-        
+
+    def fitness_statistics(self):
+        fitness_population = []
+        for cat in self.swarm:
+            fitness_population.append(cat.fitness)
+        return statistics.mean(fitness_population),statistics.pvariance(fitness_population),statistics.pstdev(fitness_population)
+
     def applyMode(self, cat: Cat):
         new_position = []
         if cat.sm:
@@ -255,18 +263,22 @@ def main():
     
     best_cat_fitness = math.inf
     best_cat_fitness_history = []
+    statistics_cat_fitness_by_generation = []
     for i in range(0, iterations):
         cat_swarm_optmization.mixtureStates()
         for cat in cat_swarm_optmization.swarm:
             cat_swarm_optmization.applyMode(cat)
     
         rank = cat_swarm_optmization.rank()
+        statistics_cat_fitness_by_generation.append(cat_swarm_optmization.fitness_statistics())
 
         if rank[0].fitness < best_cat_fitness:
             best_cat_fitness = rank[0].fitness
-            best_cat_fitness_history.append(best_cat_fitness)
+        best_cat_fitness_history.append(best_cat_fitness)
 
         print(f"Best cat fitness of iteration {i}: {best_cat_fitness}")
+    plot_graphs(best_cat_fitness_history,statistics_cat_fitness_by_generation)
+    
 
 if __name__ == '__main__':
     main()
