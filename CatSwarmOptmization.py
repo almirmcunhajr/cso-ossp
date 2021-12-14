@@ -263,6 +263,7 @@ def main():
     
     best_cat_fitness = math.inf
     best_cat_fitness_history = []
+    best_cat_fitness_by_generation = []
     statistics_cat_fitness_by_generation = []
     for i in range(0, iterations):
         cat_swarm_optmization.mixtureStates()
@@ -271,14 +272,13 @@ def main():
     
         rank = cat_swarm_optmization.rank()
         statistics_cat_fitness_by_generation.append(cat_swarm_optmization.fitness_statistics())
-
+        best_cat_fitness_by_generation.append(rank[0].fitness)
         if rank[0].fitness < best_cat_fitness:
             best_cat_fitness = rank[0].fitness
         best_cat_fitness_history.append(best_cat_fitness)
 
         print(f"Best cat fitness of iteration {i}: {best_cat_fitness}")
-    plot_graphs(best_cat_fitness_history,statistics_cat_fitness_by_generation)
-    
+    plot_graphs(best_cat_fitness_by_generation,best_cat_fitness_history,statistics_cat_fitness_by_generation)
 
 if __name__ == '__main__':
     main()
